@@ -1,0 +1,288 @@
+{
+    //PONER EN TU %appdata%/Code/User/snippets
+
+    "system": {
+        "scope": "rust",
+        "prefix": "sys",
+        "body": [
+            "//NO OLVIDARSE DE AGREGARLO AL PLUGIN",
+            "#[allow()]",
+            "pub fn ${1:system_name}(mut commands: Commands, $2) {",
+            "    $0",
+            "}",
+            "",
+        ]
+    },
+
+    "add plugins": {
+        "scope": "rust",
+        "prefix": "adpi",
+        "body": [
+            ".add_plugins(${1:PLUGIN_NAME})"
+        ]
+    },
+    "add_systems": {
+        "scope": "rust",
+        "prefix": "adsy",
+        "body": [
+            "#[allow(unused_parens)]",
+            ".add_systems(${1|Update,Startup|}, ${2|(somesystem)),(somesystem).runif(in_state(SomeStateType::Literal)))|} "
+        ]
+    },
+    "state scoped": {
+        "scope": "rust",
+        "prefix": "stasco",
+        "body": [
+            "StateScoped(${1:STATETYPE_NAME}::${2:statevalue})",
+        ]
+    },
+    
+    "component": {
+        "scope": "rust",
+        "prefix": "comp",
+        "body": [
+            "#[derive(Component, Debug, Default, )${2|],]\n#[require(StateScoped::<AppState>)]|}",
+            "pub ${3|struct,enum|} ${1:COMPONENT_NAME}${4|();, {\n    asd: SomeType,\n};|}"
+        ]
+    },
+    "require scope": {
+        "scope": "rust",
+        "prefix": "reqsco",
+        "body": [
+            "#[require(StateScoped::<${1:AppState}>)]",
+        ]
+    },
+    "event": {
+        "scope": "rust",
+        "prefix": "ev",
+        "body": [
+            "#[derive(Event)]",
+            "pub struct ${1:EVENT_NAME} {$0,}"
+        ]
+    },
+    "ifmasta": {
+        "scope": "rust",
+        "prefix": "ifmasta",
+        "body": [
+            "if $1 {",
+            "    match current_state.get() {",
+            "        $2::$3 => {next_state.set($2::$4)},",
+            "        $2::$4 => {next_state.set($2::$3)},",
+            "    }",
+            "}"
+        ]
+    },
+    "inist": {
+        "scope": "rust",
+        "prefix": "inist",
+        "body": [
+            ".init_state::<${1:STATETYPE_NAME}>()"
+        ]
+    },
+    "inre": {
+        "scope": "rust",
+        "prefix": "inire",
+        "body": [
+            ".init_resource::<${1:RESOURCE_NAME}>()"
+        ]
+    },
+    "kinp": {
+        "scope": "rust",
+        "prefix": "kinp",
+        "body": [
+            "keyboard_input: Res<ButtonInput<KeyCode>>,"
+        ]
+    },
+    "plu": {
+        "scope": "rust",
+        "prefix": "plu",
+        "body": [
+            "pub struct ${1:PLUGIN_NAME};",
+            "impl Plugin for ${1:PLUGIN_NAME} {",
+            "    fn build(&self, app: &mut App) {",
+            "        app",
+            "            .add_systems(${2|Update,Startup|}, ${3:system})",
+            "            .add_systems(${4|Update,Startup|}, ${5:system2})",
+            "        ;",
+            "    }",
+            "}"
+        ],
+        "description": "Bevy plugin boilerplate"
+    },
+    "prelu": {
+        "scope": "rust",
+        "prefix": "prl",
+        "body": [
+            "#[allow(unused_imports)] use bevy::prelude::*;"
+        ]
+    },
+    "require component": {
+        "scope": "rust",
+        "prefix": "req",
+        "body": [
+            "#[require(${1:REQ_COMPONENT_NAME})]"
+        ]
+    },
+    "res": {
+        "scope": "rust",
+        "prefix": "res",
+        "body": [
+            "#[derive(Resource, )]",
+            "pub ${2|struct,enum|} ${1:RESOURCE_NAME} {",
+            "    $3",
+            "}",
+            "impl Default for ${1:RESOURCE_NAME} {",
+            "    fn default() -> Self {",
+            "        Self {",
+            "            ",
+            "        }",
+            "    }",
+            "}"
+        ]
+    },
+    "aserv": {
+        "scope": "rust",
+        "prefix": "aserv",
+        "body": [
+            "asset_server: Res<AssetServer>",
+        ]
+    },
+    
+    "sta": {
+        "scope": "rust",
+        "prefix": "sta",
+        "body": [
+            "#[derive(States, Debug, Clone, PartialEq, Eq, Hash, Default)]",
+            "#[states(scoped_entities)]",
+            "enum ${1:StateName} {",
+            "    #[default]",
+            "    ${2:First},",
+            "    ${3:Second},",
+            "    ${4:Third},",
+            "}"
+        ]
+    },
+    "staarg": {
+        "scope": "rust",
+        "prefix": "staarg",
+        "body": [
+            "current_state: Res<State<$1>>, mut next_state: ResMut<NextState<$1>>,"
+        ]
+    },
+    "substates": {
+        "scope": "rust",
+        "prefix": "substa",
+        "body": [
+            "#[derive(SubStates, Debug, Clone, PartialEq, Eq, Hash, Default)]",
+            "#[source(${1:SuperState} = ${1:SuperState}::${2:Value})]",
+            "#[states(scoped_entities)]",
+            "enum ${3:SubStateName} {#[default]${4:First}, ${5:Second},}",
+        ],
+        "description": "Bevy substates enum boilerplate"
+    },
+    "syse": {
+        "scope": "rust",
+        "prefix": "syset",
+        "body": [
+            "#[derive(SystemSet, Debug, Hash, PartialEq, Eq, Clone)]",
+            "pub struct ${3:SYSTEM_SET_NAME});"
+        ]
+    },
+    "mutco": {
+        "scope": "rust",
+        "prefix": "mutco",
+        "body": [
+            "mut commands: Commands"
+        ]
+    },
+    "module": {
+        "scope": "rust",
+        "prefix": "modu",
+        "body": [
+            "#[allow(unused_imports)] use bevy::prelude::*;\n",
+            "use crate::game::IngameSystems;",
+            "//use crate::game::${5:parent_module_name}::${1:module_name}::${1:module_name}_systems::*;",
+            "//use crate::game::${5:parent_module_name}::${1:module_name}::${1:module_name}_components::*;",
+            "//use crate::game::${5:parent_module_name}::${1:module_name}::${1:module_name}_resources::*;",
+            "//use crate::game::${5:parent_module_name}::${1:module_name}::${1:module_name}_layout::*;",
+            "//use crate::game::${5:parent_module_name}::${1:module_name}::${1:module_name}_events::*;",
+            
+
+            "//mod ${1:module_name}_systems;",
+            "//mod ${1:module_name}_components;",
+            "//mod ${1:module_name}_resources;",
+            "//mod ${1:module_name}_layout;",
+            "//mod ${1:module_name}_events;",
+
+            "#[derive(SystemSet, Debug, Hash, PartialEq, Eq, Clone)]",
+            "pub struct ${2:PluginName}Systems;",
+
+            "\n//PLU ¡¡ NO OLVIDARSE DE METERLO EN .add_plugins((,${2:PluginName})) del módulo ${5:parent_module_name} !!",
+            "pub struct ${2:PluginName}Plugin;",
+            "#[allow(unused_parens, path_statements, )]",
+            "impl Plugin for ${2:PluginName}Plugin {",
+            "    fn build(&self, app: &mut App) {",
+            "        app",
+            "            //.add_systems(${20|Update,Startup|}, (somesystem, ).in_set(${2:PluginName}Systems).in_set(IngameSystems))",
+            "            //.add_systems(OnEnter(${10:SomeStateType}::${11:Literal}), (setup, ))",
+            "            //.init_resource::<RESOURCE_NAME>()",
+            "        ;",
+            "    }",
+            "}"
+        ]
+    },
+    "impl Default": {
+        "scope": "rust",
+        "prefix": "impldef",
+        "body": [
+            "impl Default for ${1:STRUCT_NAME} {",
+            "    fn default() -> Self {",
+            "        Self { $2 }",
+            "    }",
+            "}"
+        ]
+    }
+    /*
+ pub fn setup(mut commands: Commands){
+
+    */,
+    "setup":{
+        "scope": "rust",
+        "prefix": "setup",
+        "body": [
+            "pub fn setup(mut commands: Commands) {",
+            "    commands.spawn($0)",
+            "}"
+        ]
+    },
+
+    "superstate": {
+        "scope": "rust",
+        "prefix": "supstate",
+        "body": [
+            "use superstate::{SuperstateInfo};",
+            "",
+            "#[derive(Component, Default)]",
+            "#[require(SuperstateInfo<${1:Movement}>)]",
+            "pub struct ${1:Movement};",
+            "",
+            "#[derive(Component)]",
+            "#[require(${1:Movement})]",
+            "pub struct ${2:Walking};",
+            "",
+            "#[derive(Component)]",
+            "#[require(${1:Movement})]",
+            "pub struct ${3:Flying};",
+            "",
+    
+        ]
+    },
+
+    "println":{
+        "scope": "rust",
+        "prefix": "pri",
+        "body": [
+            "${4|println,print|}!(\"${1:message}\", $10);"
+        ]
+    }
+}
