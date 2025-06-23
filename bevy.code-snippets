@@ -5,12 +5,19 @@
         "scope": "rust",
         "prefix": "sys",
         "body": [
-            "//NO OLVIDARSE DE AGREGARLO AL PLUGIN",
-            "#[allow()]",
-            "pub fn ${1:system_name}(mut commands: Commands, $2) {",
+            "// NO OLVIDARSE DE AGREGARLO AL Plugin DEL MÓDULO",
+            "#[allow(unused_parens)]",
+            "pub fn ${1:system_name}(${2|mut commands: Commands\\, query: Query<()\\,()>,mut commands: Commands\\, ,query: Query<()\\,()>\\,|}) {",
             "    $0",
             "}",
             "",
+        ]
+    },
+    "query":{
+        "scope": "rust",
+        "prefix": "que",
+        "body": [
+            "query: Query<(${20|&,Entity\\, &|}${3:ComponentType}, ), (${10|With,Without,Added,Changed,Removed|}<${5:&ComponentType}>, )>,"
         ]
     },
 
@@ -123,7 +130,7 @@
             "#[require(${1:REQ_COMPONENT_NAME})]"
         ]
     },
-    "res": {
+    "resource": {
         "scope": "rust",
         "prefix": "res",
         "body": [
@@ -144,7 +151,7 @@
         "scope": "rust",
         "prefix": "aserv",
         "body": [
-            "asset_server: Res<AssetServer>",
+            "asset_server: Res<AssetServer>, ",
         ]
     },
     
@@ -161,6 +168,7 @@
             "    ${4:Third},",
             "}"
         ]
+        
     },
     "staarg": {
         "scope": "rust",
@@ -182,7 +190,7 @@
     },
     "syse": {
         "scope": "rust",
-        "prefix": "syset",
+        "prefix": "sysset",
         "body": [
             "#[derive(SystemSet, Debug, Hash, PartialEq, Eq, Clone)]",
             "pub struct ${3:SYSTEM_SET_NAME});"
