@@ -1,14 +1,33 @@
 {
     //PONER EN TU %appdata%/Code/User/snippets
 
+    // ESCRIBÍ LO QUE DICE EN "prefix" PARA USAR UN SNIPPET
+    "allow": {
+        "scope": "rust",
+        "prefix": "allow",
+        "body": [
+            "#[allow(${1:unused_parens, dead_code})]"
+        ]
+    },
+    "beingmap": {
+        "scope": "rust",
+        "prefix": "bmap",
+        "body": [
+            "bmap: ResMut<BeingEntityMap>, "
+        ]
+    },
+
     "system": {
         "scope": "rust",
         "prefix": "sys",
         "body": [
-            "// NO OLVIDARSE DE AGREGARLO AL Plugin DEL MÓDULO",
+            "// ----------------------> NO OLVIDARSE DE AGREGARLO AL Plugin DEL MÓDULO <-----------------------------",
+            "//                                                       ^^^^",
             "#[allow(unused_parens)]",
-            "pub fn ${1:system_name}(${2|mut commands: Commands\\, query: Query<()\\,()>,mut commands: Commands\\, ,query: Query<()\\,()>\\,|}) {",
-            "    $0",
+            "pub fn ${1:system_name}(${2|mut commands: Commands\\, mut query: Query<(&mut Being)\\,()>,mut commands: Commands\\, ,mut query: Query<(&mut Being)\\,()>\\,|}) {",
+            "    for mut item in query.iter_mut() {",
+            "        $0",
+            "    }",
             "}",
             "",
         ]
@@ -49,7 +68,7 @@
         "prefix": "comp",
         "body": [
             "#[derive(Component, Debug, Default, )${2|],]\n#[require(StateScoped::<AppState>)]|}",
-            "pub ${3|struct,enum|} ${1:COMPONENT_NAME}${4|();, {\n    asd: SomeType,\n};|}"
+            "pub ${3|struct,enum|} ${1:COMPONENT_NAME}${4|();, {\n    foo: SomeType,\n};|}"
         ]
     },
     "require scope": {
@@ -127,18 +146,19 @@
         "scope": "rust",
         "prefix": "req",
         "body": [
-            "#[require(${1:REQ_COMPONENT_NAME})]"
+            "#[require(${1:RequiredComponentName})]"
         ]
     },
     "resource": {
         "scope": "rust",
         "prefix": "res",
         "body": [
+            "// ---------------------------> NO OLVIDARSE DE INICIALIZARLO EN EL Plugin DEL MÓDULO <-----------------------",
             "#[derive(Resource, )]",
-            "pub ${2|struct,enum|} ${1:RESOURCE_NAME} {",
+            "pub ${2|struct,enum|} ${1:ResourceName} {",
             "    $3",
             "}",
-            "impl Default for ${1:RESOURCE_NAME} {",
+            "impl Default for ${1:ResourceName} {",
             "    fn default() -> Self {",
             "        Self {",
             "            ",
@@ -193,7 +213,7 @@
         "prefix": "sysset",
         "body": [
             "#[derive(SystemSet, Debug, Hash, PartialEq, Eq, Clone)]",
-            "pub struct ${3:SYSTEM_SET_NAME});"
+            "pub struct ${3:SystemSetName});"
         ]
     },
     "mutco": {
@@ -207,7 +227,7 @@
         "scope": "rust",
         "prefix": "modu",
         "body": [
-            "#[allow(unused_imports)] use bevy::prelude::*;\n",
+            "#[allow(unused_imports)] use {bevy::prelude::*, superstate::superstate_plugin};\n",
             "use crate::game::IngameSystems;",
             "//use crate::game::${5:parent_module_name}::${1:module_name}::${1:module_name}_systems::*;",
             "//use crate::game::${5:parent_module_name}::${1:module_name}::${1:module_name}_components::*;",
@@ -234,6 +254,10 @@
             "            //.add_systems(${20|Update,Startup|}, (somesystem, ).in_set(${2:PluginName}Systems).in_set(IngameSystems))",
             "            //.add_systems(OnEnter(${10:SomeStateType}::${11:Literal}), (setup, ))",
             "            //.init_resource::<RESOURCE_NAME>()",
+            "            .add_plugins((",
+            "            // SomePlugin, ",
+            "            // superstate_plugin::<SuperState, (Substate1, Substate2)>",
+            "            ))",
             "        ;",
             "    }",
             "}"
@@ -258,7 +282,7 @@
         "scope": "rust",
         "prefix": "setup",
         "body": [
-            "pub fn setup(mut commands: Commands) {",
+            "pub fn setup(mut commands: Commands, ) {",
             "    commands.spawn($0)",
             "}"
         ]
@@ -269,7 +293,9 @@
         "prefix": "supstate",
         "body": [
             "use superstate::{SuperstateInfo};",
-            "",
+            "/*TO-DO ¡IMPORTANTE! NO OLVIDARSE DE AGREGAR: ",
+            "superstate_plugin::<${1:Movement}, (${2:Walking}, ${3:Flying})>,",
+            " EN EL Plugin DEL MÓDULO */",
             "#[derive(Component, Default)]",
             "#[require(SuperstateInfo<${1:Movement}>)]",
             "pub struct ${1:Movement};",
@@ -286,11 +312,72 @@
         ]
     },
 
+        "superstate_plugin": {
+        "scope": "rust",
+        "prefix": "supstateplug",
+        "body": [
+            "superstate_plugin::<SuperState, (Substate1, Substate2)>"
+        ]
+    },
+
     "println":{
         "scope": "rust",
         "prefix": "pri",
         "body": [
             "${4|println,print|}!(\"${1:message}\", $10);"
+        ]
+    },
+    "derive":{
+        "scope": "rust",
+        "prefix": "deri",
+        "body": [
+            "#[derive(${1:Debug, Clone, Copy, Default, Hash, PartialEq, Eq}, )]",
+        ]
+    },
+    "comp_and_map":{
+        "scope": "rust",
+        "prefix": "compmap",
+        "body": [
+            "#[derive(Component, Debug, PartialEq, Eq, Hash, )]",
+            "pub struct ${1:ComponentName} {pub nid: u32,}",
+            "",
+            "/* No olvidarse de inicializarlo en el Plugin del módulo",
+            " .init_resource::<${1:ComponentName}EntityMap>()",
+            "*/",
+            "#[derive(Resource, Debug, Default)]",
+            "pub struct ${1:ComponentName}EntityMap {",
+            "    map: HashMap<${1:ComponentName}, Entity>,",
+            "    next_nid: u32,",
+            "}",
+            "#[allow(unused_parens)]",
+            "impl ${1:ComponentName}EntityMap {",
+            "    pub fn new_${4:instance}<B: Bundle>(&mut self, commands: &mut Commands, bundle: B) -> Entity {",
+            "        let ${4:instance} = ${1:ComponentName}::new(self.next_nid);",
+            "        let entity = commands.spawn((${1:ComponentName}::new(self.next_nid), bundle)).id();",
+            "        self.map.insert(${4:instance}, entity);",
+            "        self.next_nid += 1;",
+            "        entity",
+            "    }",
+            "",
+            "    pub fn get_entity(&self, ${4:instance}: ${1:ComponentName}) -> Option<Entity> {",
+            "        self.map.get(&${4:instance}).copied()",
+            "    }",
+            "",
+            "    pub fn remove_entity(&mut self, ${4:instance}: ${1:ComponentName}) -> Option<Entity> {",
+            "        if let Some(entity) = self.map.remove(&${4:instance}) {",
+            "            Some(entity)",
+            "        } else {",
+            "            None",
+            "        }",
+            "    }",
+            "",
+            "",
+            "   // meant to be used for syncing purposes",
+            "   pub fn insert_entity(&mut self, ${4:instance}: ${1:ComponentName}, entity: Entity) {",
+            "        self.map.insert(${4:instance}, entity);",
+            "    }",
+            "}",
+            "",
         ]
     }
 }
