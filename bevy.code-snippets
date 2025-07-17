@@ -16,6 +16,17 @@
             "bmap: ResMut<BeingEntityMap>, "
         ]
     },
+"mpevent":{
+    "scope": "rust",
+    "prefix": "mpevent",
+    "body": [
+        "#[derive(serde::Deserialize, Event, serde::Serialize, Clone)]",
+        "pub struct ${1:MpEvent} { }",
+        "",
+        "// No olvidarse de agregarlo al Plugin del módulo",
+        "// .add_${20|client,server|}_trigger::<${1:MpEvent}>(Channel::Ordered)"
+    ]
+},
 
     "system": {
         "scope": "rust",
@@ -67,7 +78,7 @@
         "scope": "rust",
         "prefix": "comp",
         "body": [
-            "#[derive(Component, Debug, Default, )${2|],]\n#[require(StateScoped::<AppState>)]|}",
+            "#[derive(Component, Debug, Default, Deserialize, Serialize, )${2|],]\n#[require(StateScoped::<AppState>)]|}",
             "pub ${3|struct,enum|} ${1:COMPONENT_NAME}${4|();, {\n    foo: SomeType,\n};|}"
         ]
     },
@@ -139,7 +150,9 @@
         "scope": "rust",
         "prefix": "prl",
         "body": [
-            "#[allow(unused_imports)] use bevy::prelude::*;"
+            "#[allow(unused_imports)] use bevy::prelude::*;",
+            "#[allow(unused_imports)] use bevy_replicon::prelude::*;",
+            "use serde::{Deserialize, Serialize};",
         ]
     },
     "require component": {
@@ -201,6 +214,8 @@
         "scope": "rust",
         "prefix": "substa",
         "body": [
+            "// ---------------------------> NO OLVIDARSE DE INICIALIZARLO EN EL Plugin DEL MÓDULO <-----------------------",
+            ".init_state::<${3:SubStateName}>()\n",
             "#[derive(SubStates, Debug, Clone, PartialEq, Eq, Hash, Default)]",
             "#[source(${1:SuperState} = ${1:SuperState}::${2:Value})]",
             "#[states(scoped_entities)]",
@@ -213,7 +228,7 @@
         "prefix": "sysset",
         "body": [
             "#[derive(SystemSet, Debug, Hash, PartialEq, Eq, Clone)]",
-            "pub struct ${3:SystemSetName});"
+            "pub struct ${3:SystemSetName};"
         ]
     },
     "mutco": {
@@ -229,18 +244,20 @@
         "body": [
             "#[allow(unused_imports)] use {bevy::prelude::*, superstate::superstate_plugin};\n",
             "use crate::game::IngameSystems;",
-            "//use crate::game::${5:parent_module_name}::${1:module_name}::${1:module_name}_systems::*;",
-            "//use crate::game::${5:parent_module_name}::${1:module_name}::${1:module_name}_components::*;",
-            "//use crate::game::${5:parent_module_name}::${1:module_name}::${1:module_name}_resources::*;",
-            "//use crate::game::${5:parent_module_name}::${1:module_name}::${1:module_name}_layout::*;",
-            "//use crate::game::${5:parent_module_name}::${1:module_name}::${1:module_name}_events::*;",
+            "//use crate::game::${5:parent_module_name}::${1:module_name}::{",
+            "//    ${1:module_name}_systems::*,",
+            "//    ${1:module_name}_components::*,",
+            "//    ${1:module_name}_resources::*,",
+            "//    ${1:module_name}_layout::*,",
+            "//    ${1:module_name}_events::*,",
+            "//};",
             
 
             "//mod ${1:module_name}_systems;",
             "//mod ${1:module_name}_components;",
             "//mod ${1:module_name}_resources;",
-            "//mod ${1:module_name}_layout;",
             "//mod ${1:module_name}_events;",
+            "//mod ${1:module_name}_layout;",
 
             "#[derive(SystemSet, Debug, Hash, PartialEq, Eq, Clone)]",
             "pub struct ${2:PluginName}Systems;",
