@@ -2,6 +2,13 @@
     //PONER EN TU %appdata%/Code/User/snippets
 
     // ESCRIBÍ LO QUE DICE EN "prefix" PARA USAR UN SNIPPET
+    "cmd":{
+        "scope": "rust",
+        "prefix": "cmd",
+        "body": [
+            "mut cmd: Commands, "
+        ]
+    },
     "allow": {
         "scope": "rust",
         "prefix": "allow",
