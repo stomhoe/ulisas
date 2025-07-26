@@ -5,9 +5,9 @@ edition = "2024"
 
 [dependencies]
 nano-id = "0.4.0"
-rand = "0.9.1"
-strum = "0.27.1"
-strum_macros = "0.27.1"
+rand = "0.9.2"
+strum = "0.27.2"
+strum_macros = "0.27.2"
 vec-collections = "0.4.3"
 debug_unwraps = "0.1.0"
 rand_distr = "0.5.1"
@@ -22,19 +22,16 @@ bevy = { version = "0.16.1", features = [
     #"bevy_remote",
     #.add_plugins(RemotePlugin::default()).add_plugins(RemoteHttpPlugin::default().with_port(port))
 ] }
-bevy_ecs_tilemap = { git = "https://github.com/zachrburke/bevy_ecs_tilemap.git" }
 superstate = { git = "https://github.com/KurlykovDanila/Superstate.git" }
-
-bevy_simple_scroll_view = "0.4.0"
-bevy_ui_text_input = "0.5.2"
 
 bevy_replicon = "0.34.3"
 bevy_replicon_renet = { git = "https://github.com/projectharmonia/bevy_replicon_renet.git" }
-serde = "1.0.219"
-lightyear_prediction = "0.21.1"
-lightyear_interpolation = "0.21.1"
-bevy-ui-gradients = "0.4.0"
-bevy_spritesheet_animation = "3.0.0"
+serde = { version = "1.0.219", features = ["derive"] }
+
+bevy_asset_loader = "0.23.0"
+bevy-inspector-egui = "0.32.0"
+#splines = { version = "5.0.0", features = ["serde"] }
+#bevy_northstar = "0.3.1"
 
 [dependencies.fastnoise-lite]
 version = "*"
