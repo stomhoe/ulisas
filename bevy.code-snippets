@@ -1,58 +1,87 @@
 {
+    "on_receive_server_event": {
+        "scope": "rust",
+        "prefix": "recserv",
+        "body": [
+            "pub fn on_receive_${1:EventType}_from_server(",
+            "    trigger: Trigger<${1:EventType}>,",
+            "    mut query: Query<&mut ${2:ComponentType}, >,",
+            "    server: Option<Res<RenetServer>>,",
+            "    mut map: ResMut<ServerEntityMap>,",
+            ") {",
+            "    if server.is_some() { return; }",
+            "",
+            "    let ${1:EventType} { entity, data } = trigger.event().clone();",
+            "",
+            "    if let Some(entity) = map.server_entry(entity).get() {",
+            "        if let Ok(mut comp) = query.get_mut(entity) {",
+            "            *comp = data;",
+            "            //info!(\"Received state for entity {:?}: {:?}\", entity, comp);",
+            "        } else {",
+            "            warn!(\"Received state for entity {:?} that does not exist or is not valid.\", entity);",
+            "        }",
+            "    }",
+            "    else {",
+            "        warn!(\"Received state for entity {:?} that is not in the server entity map.\", entity);",
+            "    }",
+            "}"
+        ],
+        "description": "Generic snippet for receiving and applying server events to components"
+    },
+    "sync_to_clients": {
+        "scope": "rust",
+        "prefix": "servtrig",
+        "body": [
+            "cmd.server_trigger(ToClients {",
+            "    mode: SendMode::Direct(${1:client_entity}),",
+            "    event: ${2:event_data}.clone(),",
+            "});"
+        ],
+        "description": "Generic snippet for sending events to clients using ToClients and server_trigger"
+    },
+    "hot": {
+        "scope": "rust",
+        "prefix": "hot",
+        "body": [
+            "#[bevy_simple_subsecond_system::hot]"
+        ]
+    },
     "tiling_entity_map": {
     "scope": "rust",
     "prefix": "entitymap",
     "body": [
-        "RonAssetPlugin::<${1:Something}Seri>::new(&[\"${5:something}.ron\"]),",
-        ".load_collection::<${1:Something}SerisHandles>()",
-        ".init_resource::<${1:Something}EntityMap>()",
+        "use bevy::platform::collections::HashMap;",
+        "use crate::common::common_utils::HashIdToEntityMap;",
+        "",
+        "               RonAssetPlugin::<${1:Something}Seri>::new(&[\"${5:something}.ron\"]),",
+        "               .load_collection::<${1:Something}SerisHandles>()",
+        "           .init_resource::<${1:Something}EntityMap>()",
 
         "#[derive(Resource, Debug, Default )]",
-        "pub struct ${1:Something}EntityMap(pub HashMap<String, Entity>);",
-        "",
-        "#[allow(unused_parens)]",
-        "impl ${1:Something}EntityMap {",
-        "    pub fn new_${5:something}_ent_from_seri(",
-        "        &mut self, cmd: &mut Commands, handle: Handle<${1:Something}Seri>, assets: &mut Assets<${1:Something}Seri>,",
-        "    ) {",
-        "        if let Some(mut seri) = assets.remove(&handle) {",
-        "            use std::mem::take;",
-        "            if self.0.contains_key(&seri.id) {",
-        "                error!(target: \"${5:something}_loading\", \"${1:Something}Seri with id {:?} already exists in map, skipping\", seri.id);",
-        "                return;",
-        "            }",
-        "            if seri.id.len() <= 2 {",
-        "                error!(target: \"${5:something}_loading\", \"${1:Something}Seri id is too short or empty, skipping\");",
-        "                return;",
-        "            }",
-        "            let img_path = format!(\"assets/{}\", seri.img_path);",
-        "            if !std::path::Path::new(&img_path).exists() {",
-        "                error!(target: \"${5:something}_loading\", \"Image path does not exist: {}\", img_path);",
-        "                return;",
-        "            }",
-        "            let img_path = take(&mut seri.img_path);",
-        "        }",
-        "    }",
-        "",
-        "    pub fn get_entity<S: Into<String>>(&self, id: S) -> Option<Entity> { self.0.get(&id.into()).copied() }",
-        "",
-        "    pub fn get_entities<I, S>(&self, ids: I) -> Vec<Entity> where I: IntoIterator<Item = S>, S: AsRef<str>, {",
-        "        ids.into_iter().filter_map(|id| self.0.get(id.as_ref()).copied()).collect()",
-        "    }",
-        "}",
+        "pub struct ${1:Something}EntityMap(pub HashIdToEntityMap);",
         "",
         "#[derive(AssetCollection, Resource)]",
         "pub struct ${1:Something}SerisHandles {",
-        "    #[asset(path = \"ron/${5:somepathhhhhhhhhhh}\", collection(typed))]",
-        "    pub handles: Vec<Handle<${1:Something}Seri>>,",
+        "    #[asset(paths(\"ron/${5:somepathhhhhhhhhhh}\", ), collection(typed))]",
+        "    pub handles: Vec<Handle<${1:Something}Seri>>,", 
         "}",
         "#[derive(serde::Deserialize, Asset, TypePath, Default)]",
         "pub struct ${1:Something}Seri {",
         "    pub id: String,",
-        "",
-        "}"
+        "}",
+        "/// MOVER A _systems.rs",
+        "#[allow(unused_parens)]",
+        "pub fn init_${5:something}s(",
+        "    mut cmd: Commands,",
+        "    mut seris_handles: ResMut<${1:Something}SerisHandles>,",
+        "    mut assets: ResMut<Assets<${1:Something}Seri>>,",
+        "    mut map: ResMut<${1:Something}EntityMap>,",
+        ") {",
+        "    for handle in std::mem::take(&mut seris_handles.handles) {",
+        "        info!(target: \"${5:something}_loading\", \"Loading ${1:Something}Seri from handle: {:?}\", handle);",
+        "    }",
+        "}",
         ],
-    "description": "{$1:Something}EntityMap and {$1:Something}SerisHandles boilerplate"
     },
 
     //PONER EN TU %appdata%/Code/User/snippets
@@ -82,25 +111,32 @@
         "scope": "rust",
         "prefix": "mpevent",
         "body": [
-            "#[derive(serde::Deserialize, Event, serde::Serialize, Clone)]",
+            "#[derive(serde::Deserialize, Event, serde::Serialize, Clone, MapEntities)]",
             "pub struct ${1:MpEvent} { }",
             "",
-            "// No olvidarse de agregarlo al Plugin del módulo",
-            "// .add_${20|client,server|}_trigger::<${1:MpEvent}>(Channel::Ordered)"
+            "/* No olvidarse de agregarlo al Plugin del módulo",
+            "           .add_${20|client,server|}_trigger::<${1:MpEvent}>(Channel::Ordered)",
+            "           .add_mapped_${20|client,server|}_trigger::<${1:MpEvent}>(Channel::Ordered)",
+            "*/",
         ]
     },
     "relationship": {
         "scope": "rust",
         "prefix": "rela",
         "body": [
-            "#[derive(Component, Debug, Deserialize, Serialize)]",
+            "/*",
+            "           .replicate::<${1:FollowerOf}>()",
+            "           .register_type::<${2:FollowerOf}>()",
+            "           .register_type::<${1:Followers}>()",
+            "*/",
+            "#[derive(Component, Debug, Deserialize, Serialize, Copy, Clone, Hash, PartialEq, Eq, Reflect)]",
             "#[relationship(relationship_target = ${1:Followers})]",
             "pub struct ${2:FollowerOf} {",
             "    #[relationship] #[entities]",
             "    pub ${3:master}: Entity,",
             "}",
             "",
-            "#[derive(Component)]",
+            "#[derive(Component, Debug, Reflect)]",
             "#[relationship_target(relationship = ${2:FollowerOf})]",
             "pub struct ${1:Followers}(Vec<Entity>);"
         ],
@@ -114,7 +150,7 @@
             "// ----------------------> NO OLVIDARSE DE AGREGARLO AL Plugin DEL MÓDULO <-----------------------------",
             "//                                                       ^^^^",
             "#[allow(unused_parens)]",
-            "pub fn ${1:system_name}(${2|mut cmd: Commands\\, mut query: Query<(&)\\,()>,mut commands: Commands\\, ,mut query: Query<(Entity, &)\\,()>\\,|}) {",
+            "pub fn ${1:system_name}(${2|mut cmd: Commands\\, \n    mut query: Query<(&)\\,()>,mut commands: Commands\\, \n,mut query: Query<(Entity, &)\\,()>\\,|}\n) {",
             "    for mut item in query.iter_mut() {",
             "        $0",
             "    }",
@@ -129,11 +165,18 @@
             "RonAssetPlugin::<${10:}Seri>::new(&[\"${20:algo}.ron\"])",
         ]
     },
-    "query":{
+    "query1":{
         "scope": "rust",
         "prefix": "quu",
         "body": [
             "query: Query<(${20|&,Entity\\, &|}${3:ComponentType}, ), (${10|With,Without,Added,Changed,Removed|}<${5:ComponentType}>, )>,"
+        ]
+    },
+    "query2":{
+        "scope": "rust",
+        "prefix": "Query",
+        "body": [
+            "Query<(${20|&,Entity\\, &|}${3:ComponentType}, ), (${10|With,Without,Added,Changed,Removed|}<${5:ComponentType2}>, )>,"
         ]
     },
 
@@ -161,9 +204,9 @@
     },
     "marker component": {
         "scope": "rust",
-        "prefix": "markomp",
+        "prefix": "compmark",
         "body": [
-            "#[derive(Component, Debug, Default, Deserialize, Serialize, Copy, Clone)${2|],]\n#[require(StateScoped::<AppState>)]|}",
+            "#[derive(Component, Debug, Default, Deserialize, Serialize, Copy, Clone, Reflect)${2|],]\n#[require(StateScoped::<AppState>)]|}",
             "pub ${3|struct,enum|} ${1:ComponentName};",
         ]
     },
@@ -171,8 +214,9 @@
         "scope": "rust",
         "prefix": "compref",
         "body": [
-            "#[derive(Component, Debug, Deserialize, Serialize, Copy, Clone)${2|],]\n#[require(StateScoped::<AppState>)]|}",
-            "pub struct ${1:ComponentName}Ref(pub Entity);",
+            "//            .replicate::<${1:ComponentName}Ref>()",
+            "#[derive(Component, Debug, Deserialize, Serialize, Copy, Clone, Hash, PartialEq, Eq, Reflect)${2|],]\n#[require(StateScoped::<AppState>)]|}",
+            "pub struct ${1:ComponentName}Ref(#[entities] pub Entity);",
         ]
     },
     
@@ -180,11 +224,11 @@
         "scope": "rust",
         "prefix": "comp",
         "body": [
-            "#[derive(Component, Debug, Default, Deserialize, Serialize, Clone, )${2|],]\n#[require(StateScoped::<AppState>)]|}",
-            "pub ${3|struct,enum|} ${1:ComponentName}${4|(String);, {\n    foo: SomeType,\n};|}",
-            "impl ${1:ComponentName} {",
-            "    pub fn new<S: Into<String>>(id: S) -> Self { Self (id.into()) }",
-            "    pub fn id(&self) -> &String {&self.0}",
+            "//            .replicate::<${1:MainComponentName}Ref>()",
+            "#[derive(Component, Debug, Default, Deserialize, Serialize, Clone, Hash, PartialEq, Reflect)]",
+            "#[require(Replicated, /*StateScoped::<AppState>, */ )]",
+            "pub ${3|struct,enum|} ${1:MainComponentName} {",
+            "    $0",
             "}",
         ]
     },
@@ -275,7 +319,6 @@
         "body": [
             "#[allow(unused_imports)] use bevy::prelude::*;",
             "#[allow(unused_imports)] use bevy_replicon::prelude::*;",
-            "#[allow(unused_imports)] use bevy_asset_loader::prelude::*;",
             "use crate::${10:game}::${5:parent_module_name}::${1:module_name}::{",
             "//    ${1:module_name}_components::*,",
             "//    ${1:module_name}_resources::*,",
@@ -291,7 +334,6 @@
         "body": [
             "#[allow(unused_imports)] use bevy::prelude::*;",
             "#[allow(unused_imports)] use bevy_replicon::prelude::*;",
-            "#[allow(unused_imports)] use bevy_asset_loader::prelude::*;",
             "use serde::{Deserialize, Serialize};",
             "use crate::${10:game}::${5:parent_module_name}::${1:module_name}::{",
             "//    ${1:module_name}_resources::*,",
@@ -305,8 +347,9 @@
         "scope": "rust",
         "prefix": "prlres",
         "body": [
+
+            "#[allow(unused_imports)] use bevy::platform::collections::HashMap;",
             "#[allow(unused_imports)] use bevy::prelude::*;",
-            "#[allow(unused_imports)] use bevy_replicon::prelude::*;",
             "#[allow(unused_imports)] use bevy_asset_loader::prelude::*;",
             "use crate::${10:game}::${5:parent_module_name}::${1:module_name}::{",
             "//    ${1:module_name}_components::*,",
@@ -327,7 +370,7 @@
         "prefix": "res",
         "body": [
             "// ---------------------------> NO OLVIDARSE DE INICIALIZARLO EN EL Plugin DEL MÓDULO <-----------------------",
-            "#[derive(Resource, )]",
+            "#[derive(Resource, Debug, Reflect)]",
             "pub ${2|struct,enum|} ${1:ResourceName} {",
             "    $3",
             "}",
@@ -405,7 +448,7 @@
             "#[allow(unused_imports)] use {bevy::prelude::*, superstate::superstate_plugin};\n",
             "use crate::game::IngameSystems;",
             "use crate::game::${5:parent_module_name}::${1:module_name}::{",
-            "//    ${1:module_name}_systems::*,",
+            "    ${1:module_name}_systems::*,",
             "//    ${1:module_name}_components::*,",
             "//    ${1:module_name}_resources::*,",
             "//    ${1:module_name}_constants::*,",
@@ -414,8 +457,8 @@
             "};",
             
 
-            "//mod ${1:module_name}_systems;",
-            "//mod ${1:module_name}_components;",
+            "//pub mod ${1:module_name}_components;",
+            "mod ${1:module_name}_systems;",
             "//mod ${1:module_name}_resources;",
             "//mod ${1:module_name}_constants;",
             "//mod ${1:module_name}_events;",
@@ -475,15 +518,15 @@
             "/*TO-DO ¡IMPORTANTE! NO OLVIDARSE DE AGREGAR: ",
             "superstate_plugin::<${1:Movement}, (${2:Walking}, ${3:Flying})>,",
             " EN EL Plugin DEL MÓDULO */",
-            "#[derive(Component, Default)]",
+            "#[derive(Component, Debug, Default, Reflect, Clone)]",
             "#[require(SuperstateInfo<${1:Movement}>)]",
             "pub struct ${1:Movement};",
             "",
-            "#[derive(Component)]",
+            "#[derive(Component, Debug, Default, Reflect, Clone)]",
             "#[require(${1:Movement})]",
             "pub struct ${2:Walking};",
             "",
-            "#[derive(Component)]",
+            "#[derive(Component, Debug, Default, Reflect, Clone)]",
             "#[require(${1:Movement})]",
             "pub struct ${3:Flying};",
             "",
@@ -506,13 +549,6 @@
         ]
     },
 
-    "println":{
-        "scope": "rust",
-        "prefix": "pri",
-        "body": [
-            "${4|println,print|}!(\"${1:message}\", $10);"
-        ]
-    },
     "derive":{
         "scope": "rust",
         "prefix": "deri",
@@ -533,45 +569,5 @@
         
         ]
     },
-    "comp_and_map":{
-        "scope": "rust",
-        "prefix": "compmap",
-        "body": [
-            "#[derive(Component, Debug, Default, Deserialize, Serialize, )]",
-            "pub struct ${1:ComponentName}(String);",
-            "impl ${1:ComponentName} {",
-            "    pub fn new<S: Into<String>>(id: S) -> Self {",
-            "        Self(id.into())",
-            "    }",
-            "    pub fn id(&self) -> &String { &self.0 }",
-            "}",
-            "",
-            "#[derive(Resource, Debug, Default)]",
-            "pub struct ${2:Id}${1:ComponentName}EntityMap (HashMap<String, Entity>)",
-            "",
-            "#[allow(unused_parens)]",
-            "impl ${2:Id}${1:ComponentName}EntityMap {",
-            "    pub fn new_${3:instance}_from_seri(",
-            "        &mut self,",
-            "        cmd: &mut Commands,",
-            "        ${3:instance}_seri_handle: Handle<${1:ComponentName}Seri>,",
-            "        ${3:instance}_seri_assets: &mut Assets<${1:ComponentName}Seri>,",
-            "    ) -> Entity {",
-            "        use std::mem::take;",
-            "        let ${3:instance}_seri = ${3:instance}_seri_assets.get_mut(&${3:instance}_seri_handle).unwrap();",
-            "        let ${3:instance}_id = ${1:ComponentName}::new(take(&mut ${3:instance}_seri.id));",
-            "        let entity = cmd.spawn((",
-            "           ${3:instance}_id", 
-            "        )).id();",
-            "        self.0.insert(${3:instance}_seri.id.clone(), entity);",
-            "        entity",
-            "    }",
-            "",
-            "    pub fn get_entity<S: Into<String>>(&self, ${3:instance}_id: S) -> Option<Entity> {",
-            "        self.0.get(&${3:instance}_id.into()).copied()",
-            "    }",
-            "}",
-            ""
-        ]
-    }
+ 
 }
