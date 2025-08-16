@@ -1,4 +1,47 @@
+
+
 {
+    "run_if":{
+        "scope": "rust",
+        "prefix": "rif",
+        "body": [
+            ".run_if(in_state(${1:condition}))"
+        ]
+    },
+
+
+    "common":{
+        "scope": "toml",
+        "prefix": "common",
+        "body": [
+            "common = { path = \"../acommon\" }",
+            "game_common = { path = \"../agame_common\" }"
+        ]  
+    },
+
+    "local_crate":{
+        "scope": "toml",
+        "prefix": "crate",
+        "body": [
+            "${1:common} = { path = \"../${1:common}\" }",
+        ]
+    },
+
+    "forward_mod": {
+        "scope": "rust",
+        "prefix": "fwmod",
+        "body": [
+            "pub use ${1:module}::*;",
+            "",
+            "pub mod ${1:module};",
+            "pub mod ${1:module}_components;",
+            "pub mod ${1:module}_resources;",
+            "//pub mod ${1:module}_events;",
+            "mod ${1:module}_systems;",
+        ],
+    },
+
+
     "on_receive_server_event": {
         "scope": "rust",
         "prefix": "recserv",
@@ -30,7 +73,7 @@
     },
     "sync_to_clients": {
         "scope": "rust",
-        "prefix": "servtrig",
+        "prefix": ["servtrig", "server_trigger"],
         "body": [
             "cmd.server_trigger(ToClients {",
             "    mode: SendMode::Direct(${1:client_entity}),",
@@ -46,43 +89,74 @@
             "#[bevy_simple_subsecond_system::hot]"
         ]
     },
-    "tiling_entity_map": {
-    "scope": "rust",
-    "prefix": "entitymap",
-    "body": [
-        "use bevy::platform::collections::HashMap;",
-        "use crate::common::common_utils::HashIdToEntityMap;",
-        "",
-        "               RonAssetPlugin::<${1:Something}Seri>::new(&[\"${5:something}.ron\"]),",
-        "               .load_collection::<${1:Something}SerisHandles>()",
-        "           .init_resource::<${1:Something}EntityMap>()",
+        "tiling_entity_map": {
+        "scope": "rust",
+        "prefix": "entitymap",
+        "body": [
+            "",
+            "        RonAssetPlugin::<${1:Something}Seri>::new(&[\"${5:something}.ron\"]),",
+            "        .load_collection::<${1:Something}SerisHandles>()",
 
-        "#[derive(Resource, Debug, Default )]",
-        "pub struct ${1:Something}EntityMap(pub HashIdToEntityMap);",
-        "",
-        "#[derive(AssetCollection, Resource)]",
-        "pub struct ${1:Something}SerisHandles {",
-        "    #[asset(paths(\"ron/${5:somepathhhhhhhhhhh}\", ), collection(typed))]",
-        "    pub handles: Vec<Handle<${1:Something}Seri>>,", 
-        "}",
-        "#[derive(serde::Deserialize, Asset, TypePath, Default)]",
-        "pub struct ${1:Something}Seri {",
-        "    pub id: String,",
-        "}",
-        "/// MOVER A _systems.rs",
-        "#[allow(unused_parens)]",
-        "pub fn init_${5:something}s(",
-        "    mut cmd: Commands,",
-        "    mut seris_handles: ResMut<${1:Something}SerisHandles>,",
-        "    mut assets: ResMut<Assets<${1:Something}Seri>>,",
-        "    mut map: ResMut<${1:Something}EntityMap>,",
-        ") {",
-        "    for handle in std::mem::take(&mut seris_handles.handles) {",
-        "        info!(target: \"${5:something}_loading\", \"Loading ${1:Something}Seri from handle: {:?}\", handle);",
-        "    }",
-        "}",
-        ],
-    },
+            "#[derive(Resource, Debug, Default Reflect)]",
+            "#[reflect(Resource, Default)]//SE PUEDE IMPLEMENTAR UN ReflectDefault",
+            "pub struct ${1:Something}EntityMap(pub HashIdToEntityMap);",
+            "           .register_type::<${1:Something}EntityMap>()",
+            "",
+            "#[derive(AssetCollection, Resource)]",
+            "pub struct ${1:Something}SerisHandles {",
+            "    #[asset(path =\"ron/${5:somepathhhhhhhhhhh}\", , collection(typed))]",
+            "    pub handles: Vec<Handle<${1:Something}Seri>>,", 
+            "}",
+            "#[derive(serde::Deserialize, Asset, Reflect, Default)]",
+            "pub struct ${1:Something}Seri {",
+            "    pub id: String,",
+            "}",
+            "/// MOVER A _systems.rs",
+            "#[allow(unused_parens)]",
+            "pub fn init_${5:something}s -> Result (",
+            "    mut cmd: Commands, map: Option<Res<${1:Something}EntityMap>>,",
+            "    mut seris_handles: ResMut<${1:Something}SerisHandles>,",
+            "    mut assets: ResMut<Assets<${1:Something}Seri>>,",
+            ") {",
+            "    if map.is_some(){ return Ok(());}",
+            "    cmd.init_resource::<${1:Something}EntityMap>();",
+            "    for handle in std::mem::take(&mut seris_handles.handles) {",
+            "        let Some(seri) = assets.get(&handle) else {",
+            "            warn!(target: \"${5:something}_loading\", \"Failed to load ${1:Something}Seri from handle: {:?}\", handle);",
+            "            continue;",
+            "        };",
+
+            "        info!(target: \"${5:something}_loading\", \"Loading ${1:Something}Seri from handle: {:?}\", handle);",
+            "    }",
+            "    Ok(())",
+            "}",
+
+            "pub fn add_${5:something}s_to_map(",
+            "    map: Option<ResMut<${1:Something}EntityMap>>,",
+            "    query: Query<(Entity, &EntityPrefix, &StrId), (Added<${1:Something}>, )>,",
+            ") -> Result<(), String> {",
+            "    let mut result: Result<(), String> = Ok(());",
+            "    if let Some(mut map) = map {",
+            "        for (ent, prefix, str_id) in query.iter() {",
+            "            if let Err(err) = map.0.insert(str_id, ent) {",
+            "                error!(target: \"${5:something}_loading\", \"{} {} already in ${1:Something}EntityMap : {}\", prefix, str_id, err);",
+            "                result = Err(err);",
+            "            } else {",
+            "                info!(target: \"${5:something}_loading\", \"Inserted '{}' into ${1:Something}EntityMap with entity {:?}\", str_id, ent);",
+            "            }",
+            "        }",
+            "    }",
+            "    result",
+            "}",
+            "",
+            "        .add_systems(OnEnter(AssetsLoadingState::ReplicatedFinished), (",
+            "            (init_dimensions, add_${5:something}_to_map).chain(),",
+            "        ))",
+            "        .add_systems(Update, (",
+            "            add_${5:something}s_to_map.run_if(not(server_or_singleplayer)),",
+            "        ))",
+            "      ",  ],
+        },
 
     //PONER EN TU %appdata%/Code/User/snippets
     "cmd":{
@@ -97,7 +171,7 @@
         "scope": "rust",
         "prefix": "allow",
         "body": [
-            "#[allow(${1:unused_parens, dead_code})]"
+            "#[allow(${1:unused_parens}, $0)]"
         ]
     },
     "beingmap": {
@@ -125,7 +199,7 @@
         "prefix": "rela",
         "body": [
             "/*",
-            "           .replicate::<${1:FollowerOf}>()",
+            "           .replicate::<${2:FollowerOf}>()",
             "           .register_type::<${2:FollowerOf}>()",
             "           .register_type::<${1:Followers}>()",
             "*/",
@@ -138,7 +212,8 @@
             "",
             "#[derive(Component, Debug, Reflect)]",
             "#[relationship_target(relationship = ${2:FollowerOf})]",
-            "pub struct ${1:Followers}(Vec<Entity>);"
+            "pub struct ${1:Followers}(Vec<Entity>);",
+            "impl ${1:Followers} { pub fn entities(&self) -> &[Entity] { &self.0 } }",
         ],
         "description": "Bevy relationship and relationship_target component boilerplate"
     },
@@ -214,7 +289,8 @@
         "scope": "rust",
         "prefix": "compref",
         "body": [
-            "//            .replicate::<${1:ComponentName}Ref>()",
+            "       .replicate::<${1:ComponentName}Ref>()",
+            "       .register_type::<${1:ComponentName}Ref>()",
             "#[derive(Component, Debug, Deserialize, Serialize, Copy, Clone, Hash, PartialEq, Eq, Reflect)${2|],]\n#[require(StateScoped::<AppState>)]|}",
             "pub struct ${1:ComponentName}Ref(#[entities] pub Entity);",
         ]
@@ -222,12 +298,12 @@
     
     "component": {
         "scope": "rust",
-        "prefix": "comp",
+        "prefix": ["compmain", "maincomp"],
         "body": [
-            "//            .replicate::<${1:MainComponentName}Ref>()",
+            "        .replicate::<${1:MainComponentName}>()",
             "#[derive(Component, Debug, Default, Deserialize, Serialize, Clone, Hash, PartialEq, Reflect)]",
-            "#[require(Replicated, /*StateScoped::<AppState>, */ )]",
-            "pub ${3|struct,enum|} ${1:MainComponentName} {",
+            "#[require(EntityPrefix::new(\"${1:MainComponent}\"), Replicated, /*SessionScoped*/ )]",
+            "pub ${3|struct,enum|} ${1:MainComponent} {",
             "    $0",
             "}",
         ]
@@ -236,7 +312,7 @@
         "scope": "rust",
         "prefix": "reqsco",
         "body": [
-            "#[require(StateScoped::<${1:AppState}>)]",
+            "#[require(SessionScoped)]",
         ]
     },
     "event": {
@@ -261,14 +337,14 @@
     },
     "inist": {
         "scope": "rust",
-        "prefix": "inist",
+        "prefix": ["inist", ".init_state", "init_state"],
         "body": [
             ".init_state::<${1:STATETYPE_NAME}>()"
         ]
     },
     "inre": {
         "scope": "rust",
-        "prefix": "inire",
+        "prefix": ["inire", ".init_resource", "init_resource"],
         "body": [
             ".init_resource::<${1:RESOURCE_NAME}>()"
         ]
@@ -284,47 +360,44 @@
         "scope": "rust",
         "prefix": "plu",
         "body": [
-            "pub struct ${1:PLUGIN_NAME};",
-            "impl Plugin for ${1:PLUGIN_NAME} {",
-            "    fn build(&self, app: &mut App) {",
-            "        app",
-            "            .add_systems(${2|Update,Startup|}, ${3:system})",
-            "            .add_systems(${4|Update,Startup|}, ${5:system2})",
-            "        ;",
-            "    }",
-            "}"
+           "use bevy::prelude::*;",
+            "use bevy_replicon::prelude::*;",
+            "use game_common::GameplaySystems;",
+            "use crate::{",
+            "    ${1:module_name}_systems::*,",
+            "    ${1:module_name}_init_systems::*,",
+            "    ${1:module_name}_components::*,",
+            "    ${1:module_name}_resources::*,",
+            "//    ${1:module_name}_events::*,",
+            "};",
+            "#[derive(SystemSet, Debug, Hash, PartialEq, Eq, Clone)]",
+            "pub struct ${2:PluginName}Systems;",
+
+           "pub fn plugin(app: &mut App) {",
+            "    app",
+            "    .add_plugins(())",
+            "    .add_systems(${3|Update,OnEnter(State::Nase)|}, (",
+            "    // ${4:system_name},",
+            "    ).in_set(GameplaySystems))",
+            "    ;",
+            "}",
         ],
         "description": "Bevy plugin boilerplate"
     },
-    // "nase": {
-    //     "scope": "rust",
-    //     "prefix": "prl",
-    //     "body": [
-    //         "#[allow(unused_imports)] use bevy::prelude::*;",
-    //         "#[allow(unused_imports)] use bevy_replicon::prelude::*;",
-    //         "#[allow(unused_imports)] use bevy_asset_loader::prelude::*;",
-    //         "use serde::{Deserialize, Serialize};",
-    //         "use crate::${10:game}::${5:parent_module_name}::${1:module_name}::{",
-    //         "//    ${1:module_name}_components::*,",
-    //         "//    ${1:module_name}_resources::*,",
-    //         "//    ${1:module_name}_constants::*,",
-    //         "//    ${1:module_name}_layout::*,",
-    //         "//    ${1:module_name}_events::*,",
-    //         "};",
-    //     ]
-    // },
     "prelusys": {
         "scope": "rust",
         "prefix": "prlsys",
         "body": [
             "#[allow(unused_imports)] use bevy::prelude::*;",
             "#[allow(unused_imports)] use bevy_replicon::prelude::*;",
-            "use crate::${10:game}::${5:parent_module_name}::${1:module_name}::{",
-            "//    ${1:module_name}_components::*,",
-            "//    ${1:module_name}_resources::*,",
-            "//    ${1:module_name}_constants::*,",
-            "//    ${1:module_name}_layout::*,",
-            "//    ${1:module_name}_events::*,",
+            "use common::common_components::*;",
+            "use crate::{",
+            "    ${1:module_name}_components::*,",
+            "    ${1:module_name}_resources::*,",
+            "/*",
+            "    ${1:module_name}_events::*,",
+            "    ${1:module_name}_layout::*,",
+            "*/",
             "};",
         ]
     },
@@ -333,13 +406,11 @@
         "prefix": "prlcomp",
         "body": [
             "#[allow(unused_imports)] use bevy::prelude::*;",
-            "#[allow(unused_imports)] use bevy_replicon::prelude::*;",
+            "#[allow(unused_imports)] use bevy_replicon::prelude::Replicated;",
+            "use common::common_components::*;",
+            "use game_common::game_common_components::*;",
             "use serde::{Deserialize, Serialize};",
-            "use crate::${10:game}::${5:parent_module_name}::${1:module_name}::{",
-            "//    ${1:module_name}_resources::*,",
-            "//    ${1:module_name}_constants::*,",
-            "//    ${1:module_name}_layout::*,",
-            "//    ${1:module_name}_events::*,",
+            "use crate::{",
             "};",
         ]
     },
@@ -347,11 +418,13 @@
         "scope": "rust",
         "prefix": "prlres",
         "body": [
-
             "#[allow(unused_imports)] use bevy::platform::collections::HashMap;",
-            "#[allow(unused_imports)] use bevy::prelude::*;",
+            "use bevy::{ecs::entity::MapEntities, prelude::*};",
+            "use common::common_types::HashIdToEntityMap;",
+            "use std::mem::take;",
+
             "#[allow(unused_imports)] use bevy_asset_loader::prelude::*;",
-            "use crate::${10:game}::${5:parent_module_name}::${1:module_name}::{",
+            "use crate::{",
             "//    ${1:module_name}_components::*,",
             "//    ${1:module_name}_constants::*,",
             "//    ${1:module_name}_events::*,",
@@ -360,7 +433,7 @@
     },
     "require component": {
         "scope": "rust",
-        "prefix": "req",
+        "prefix": ["req", "require"],
         "body": [
             "#[require(${1:RequiredComponentName})]"
         ]
@@ -369,8 +442,9 @@
         "scope": "rust",
         "prefix": "res",
         "body": [
-            "// ---------------------------> NO OLVIDARSE DE INICIALIZARLO EN EL Plugin DEL MÓDULO <-----------------------",
-            "#[derive(Resource, Debug, Reflect)]",
+            "   .init_resource::<${1:ResourceName}>()",
+            "#[derive(Resource, Debug, Reflect, )]",
+            "#[reflect(Resource, Default)]",
             "pub ${2|struct,enum|} ${1:ResourceName} {",
             "    $3",
             "}",
@@ -395,6 +469,7 @@
         "scope": "rust",
         "prefix": "sta",
         "body": [
+            "   .init_state::<${1:StateName}>()",
             "#[derive(States, Debug, Clone, PartialEq, Eq, Hash, Default)]",
             "#[states(scoped_entities)]",
             "enum ${1:StateName} {",
@@ -441,65 +516,22 @@
             "mut commands: Commands"
         ]
     },
-    "module": {
-        "scope": "rust",
-        "prefix": "modu",
-        "body": [
-            "#[allow(unused_imports)] use {bevy::prelude::*, superstate::superstate_plugin};\n",
-            "use crate::game::IngameSystems;",
-            "use crate::game::${5:parent_module_name}::${1:module_name}::{",
-            "    ${1:module_name}_systems::*,",
-            "//    ${1:module_name}_components::*,",
-            "//    ${1:module_name}_resources::*,",
-            "//    ${1:module_name}_constants::*,",
-            "//    ${1:module_name}_events::*,",
-            "//    ${1:module_name}_layout::*,",
-            "};",
-            
 
-            "//pub mod ${1:module_name}_components;",
-            "mod ${1:module_name}_systems;",
-            "//mod ${1:module_name}_resources;",
-            "//mod ${1:module_name}_constants;",
-            "//mod ${1:module_name}_events;",
-            "//mod ${1:module_name}_layout;",
-
-            "#[derive(SystemSet, Debug, Hash, PartialEq, Eq, Clone)]",
-            "pub struct ${2:PluginName}Systems;",
-
-            "\n//PLU ¡¡ NO OLVIDARSE DE METERLO EN .add_plugins((,${2:PluginName})) del módulo ${5:parent_module_name} !!",
-            "pub struct ${2:PluginName}Plugin;",
-            "#[allow(unused_parens, path_statements, )]",
-            "impl Plugin for ${2:PluginName}Plugin {",
-            "    fn build(&self, app: &mut App) {",
-            "        app",
-            "            //.add_systems(${20|Update,Startup|}, (somesystem, ).in_set(${2:PluginName}Systems).in_set(IngameSystems))",
-            "            //.add_systems(OnEnter(${10:SomeStateType}::${11:Literal}), (setup, ))",
-            "            //.init_resource::<RESOURCE_NAME>()",
-            "            .add_plugins((",
-            "            // SomePlugin, ",
-            "            // superstate_plugin::<SuperState, (Substate1, Substate2)>",
-            "            ))",
-            "        ;",
-            "    }",
-            "}"
-        ]
-    },
-    "impl Default": {
-        "scope": "rust",
-        "prefix": "impldef",
-        "body": [
-            "impl Default for ${1:STRUCT_NAME} {",
-            "    fn default() -> Self {",
-            "        Self { $2 }",
-            "    }",
-            "}"
-        ]
-    }
+    // "impl Default": {
+    //     "scope": "rust",
+    //     "prefix": ["impldef", "impl Default"],
+    //     "body": [
+    //         "impl Default for ${1:STRUCT_NAME} {",
+    //         "    fn default() -> Self {",
+    //         "        Self { $2 }",
+    //         "    }",
+    //         "}"
+    //     ]
+    // },
     /*
  pub fn setup(mut commands: Commands){
 
-    */,
+    */
     "setup":{
         "scope": "rust",
         "prefix": "setup",
@@ -553,14 +585,14 @@
         "scope": "rust",
         "prefix": "deri",
         "body": [
-            "#[derive(${1:Debug, Clone, Copy, Default, Hash, PartialEq, Eq}, )]",
+            "#[derive(${1:Debug, Clone, Copy, Default, Hash, PartialEq, Eq, Reflect}, )]",
         ]
     },
     "seri":{
         "scope": "rust",
         "prefix": "seri",
         "body": [
-            "#[derive(serde::Deserialize, Asset, TypePath, Default)]",
+            "#[derive(Deserialize, Asset, Reflect, )]",
             "pub struct ${1:}Seri {",
             "    pub id: String,",
             "    pub name: String,",
