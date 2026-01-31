@@ -3,7 +3,7 @@
 {
     "run_if":{
         "scope": "rust",
-        "prefix": "rif",
+        "prefix": ["rif", "runif", "run_if"],
         "body": [
             ".run_if(in_state(${1:condition}))"
         ]
@@ -40,21 +40,19 @@
             "mod ${1:module}_systems;",
         ],
     },
-
-
     "on_receive_server_event": {
         "scope": "rust",
         "prefix": "recserv",
         "body": [
             "pub fn on_receive_${1:EventType}_from_server(",
-            "    trigger: Trigger<${1:EventType}>,",
+            "    on: On<${1:EventType}>,",
             "    mut query: Query<&mut ${2:ComponentType}, >,",
             "    server: Option<Res<RenetServer>>,",
             "    mut map: ResMut<ServerEntityMap>,",
             ") {",
             "    if server.is_some() { return; }",
             "",
-            "    let ${1:EventType} { entity, data } = trigger.event().clone();",
+            "    let ${1:EventType} { entity, data } = on.event().clone();",
             "",
             "    if let Some(entity) = map.server_entry(entity).get() {",
             "        if let Ok(mut comp) = query.get_mut(entity) {",
@@ -89,15 +87,15 @@
             "#[bevy_simple_subsecond_system::hot]"
         ]
     },
-        "tiling_entity_map": {
+        "entity map": {
         "scope": "rust",
-        "prefix": "entitymap",
+        "prefix": ["entitymap", "emap", "entmap", ],
         "body": [
             "",
             "        RonAssetPlugin::<${1:Something}Seri>::new(&[\"${5:something}.ron\"]),",
             "        .load_collection::<${1:Something}SerisHandles>()",
 
-            "#[derive(Resource, Debug, Default Reflect)]",
+            "#[derive(Resource, Debug, Default, Reflect, )]",
             "#[reflect(Resource, Default)]//SE PUEDE IMPLEMENTAR UN ReflectDefault",
             "pub struct ${1:Something}EntityMap(pub HashIdToEntityMap);",
             "           .register_type::<${1:Something}EntityMap>()",
@@ -113,47 +111,26 @@
             "}",
             "/// MOVER A _systems.rs",
             "#[allow(unused_parens)]",
-            "pub fn init_${5:something}s -> Result (",
+            "pub fn init_${5:something}s (",
             "    mut cmd: Commands, map: Option<Res<${1:Something}EntityMap>>,",
             "    mut seris_handles: ResMut<${1:Something}SerisHandles>,",
             "    mut assets: ResMut<Assets<${1:Something}Seri>>,",
             ") {",
-            "    if map.is_some(){ return Ok(());}",
-            "    cmd.init_resource::<${1:Something}EntityMap>();",
+            "    if map.is_some(){ return; }",
+            "    let mut map = ${1:Something}EntityMap::default();",
+            "    let mut comps_to_add = Vec::new();",
             "    for handle in std::mem::take(&mut seris_handles.handles) {",
             "        let Some(seri) = assets.get(&handle) else {",
             "            warn!(target: \"${5:something}_loading\", \"Failed to load ${1:Something}Seri from handle: {:?}\", handle);",
             "            continue;",
             "        };",
-
             "        info!(target: \"${5:something}_loading\", \"Loading ${1:Something}Seri from handle: {:?}\", handle);",
             "    }",
-            "    Ok(())",
+            "    cmd.insert_resource(map);",
+            "    cmd.insert_batch(comps_to_add);",
             "}",
-
-            "pub fn add_${5:something}s_to_map(",
-            "    map: Option<ResMut<${1:Something}EntityMap>>,",
-            "    query: Query<(Entity, &EntityPrefix, &StrId), (Added<${1:Something}>, )>,",
-            ") -> Result<(), String> {",
-            "    let mut result: Result<(), String> = Ok(());",
-            "    if let Some(mut map) = map {",
-            "        for (ent, prefix, str_id) in query.iter() {",
-            "            if let Err(err) = map.0.insert(str_id, ent) {",
-            "                error!(target: \"${5:something}_loading\", \"{} {} already in ${1:Something}EntityMap : {}\", prefix, str_id, err);",
-            "                result = Err(err);",
-            "            } else {",
-            "                info!(target: \"${5:something}_loading\", \"Inserted '{}' into ${1:Something}EntityMap with entity {:?}\", str_id, ent);",
-            "            }",
-            "        }",
-            "    }",
-            "    result",
-            "}",
-            "",
             "        .add_systems(OnEnter(AssetsLoadingState::ReplicatedFinished), (",
-            "            (init_dimensions, add_${5:something}_to_map).chain(),",
-            "        ))",
-            "        .add_systems(Update, (",
-            "            add_${5:something}s_to_map.run_if(not(server_or_singleplayer)),",
+            "            (init_${5:something}s, ).chain(),",
             "        ))",
             "      ",  ],
         },
@@ -203,7 +180,7 @@
             "           .register_type::<${2:FollowerOf}>()",
             "           .register_type::<${1:Followers}>()",
             "*/",
-            "#[derive(Component, Debug, Deserialize, Serialize, Copy, Clone, Hash, PartialEq, Eq, Reflect)]",
+            "#[derive(Component, Debug, Deserialize, Serialize, Copy, Clone, Hash, PartialEq, Eq, Reflect, MapEntities, )]",
             "#[relationship(relationship_target = ${1:Followers})]",
             "pub struct ${2:FollowerOf} {",
             "    #[relationship] #[entities]",
@@ -242,7 +219,7 @@
     },
     "query1":{
         "scope": "rust",
-        "prefix": "quu",
+        "prefix": ["quu", "query"],
         "body": [
             "query: Query<(${20|&,Entity\\, &|}${3:ComponentType}, ), (${10|With,Without,Added,Changed,Removed|}<${5:ComponentType}>, )>,"
         ]
@@ -257,32 +234,70 @@
 
     "add plugins": {
         "scope": "rust",
-        "prefix": "adpi",
+        "prefix": ["adpi", "addplugins", "addplu"],
         "body": [
             ".add_plugins(${1:PLUGIN_NAME})"
         ]
     },
     "add_systems": {
         "scope": "rust",
-        "prefix": "adsy",
+        "prefix": ["adsy", "addsystems", "addsys"],
         "body": [
             "#[allow(unused_parens)]",
             ".add_systems(${1|Update,Startup|}, ${2|(somesystem)),(somesystem).runif(in_state(SomeStateType::Literal)))|} "
+        ]
+    },
+    "mp_message":{
+        "scope": "rust",
+        "prefix": ["mpmsg", "mpmessage", "msgmp", "messagemp", ],
+        "body": [
+            "#[derive(Message, Debug, Clone, MapEntities)]",
+            "pub struct ${1:MessageName} {",
+            "    $0, ",
+            "}",
+            ".add_mapped_client_message::<${1:MessageName}>()",
+            ".add_mapped_server_message::<${1:MessageName}>()",
+        ]
+    },
+    "message":{
+        "scope": "rust",
+        "prefix": ["msg", "message"],
+        "body": [
+            "#[derive(Message, Debug, Clone, )]",
+            "pub struct ${1:MessageName} {",
+            "    $0, ",
+            "}",
+            ".add_message::<${1:MessageName}>()",
+        ]
+    },
+    "message writer": {
+        "scope": "rust",
+        "prefix": ["msgwri", "mwriter", "message writer", "writer"],
+        "body": [
+            "mut writer: MessageWriter<${1:MessageName}>,"
+        ]
+    },
+    "message reader": {
+        "scope": "rust",
+        "prefix": ["msgrd", "mreader", "message reader", "reader", ],
+        "body": [
+            "mut reader: MessageReader<${1:MessageName}>,"
         ]
     },
     "state scoped": {
         "scope": "rust",
         "prefix": "stasco",
         "body": [
-            "StateScoped(${1:STATETYPE_NAME}::${2:statevalue})",
+            "DespawnOnExit(${1:STATETYPE_NAME}::${2:statevalue})",
         ]
     },
     "marker component": {
         "scope": "rust",
         "prefix": "compmark",
         "body": [
-            "#[derive(Component, Debug, Default, Deserialize, Serialize, Copy, Clone, Reflect)${2|],]\n#[require(StateScoped::<AppState>)]|}",
+            "#[derive(Component, Debug, Default, Deserialize, Serialize, Copy, Clone, Reflect, MapEntities)${2|],]\n#[require(DespawnOnExit::<AppState>)]|}",
             "pub ${3|struct,enum|} ${1:ComponentName};",
+            ".replicate::<${1:ComponentName}>(),",
         ]
     },
     "ref component": {
@@ -291,7 +306,7 @@
         "body": [
             "       .replicate::<${1:ComponentName}Ref>()",
             "       .register_type::<${1:ComponentName}Ref>()",
-            "#[derive(Component, Debug, Deserialize, Serialize, Copy, Clone, Hash, PartialEq, Eq, Reflect)${2|],]\n#[require(StateScoped::<AppState>)]|}",
+            "#[derive(Component, Debug, Deserialize, Serialize, Copy, Clone, Hash, PartialEq, Eq, Reflect, MapEntities, )${2|],]\n#[require(DespawnOnExit::<AppState>)]|}",
             "pub struct ${1:ComponentName}Ref(#[entities] pub Entity);",
         ]
     },
@@ -302,7 +317,7 @@
         "body": [
             "        .replicate::<${1:MainComponentName}>()",
             "#[derive(Component, Debug, Default, Deserialize, Serialize, Clone, Hash, PartialEq, Reflect)]",
-            "#[require(EntityPrefix::new(\"${1:MainComponent}\"), Replicated, /*SessionScoped*/ )]",
+            "#[require(EntityPrefix::new_truncated(\"${1:MainComponent}\"), Replicated, /*SessionScoped*/ )]",
             "pub ${3|struct,enum|} ${1:MainComponent} {",
             "    $0",
             "}",
