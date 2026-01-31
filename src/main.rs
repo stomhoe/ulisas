@@ -1,8 +1,10 @@
 use bevy::input::keyboard::KeyboardInput;
 use bevy::prelude::*;
 
+use crate::game::{enemy, star};
+
 mod game;
-mod menus;
+mod menu;
 
 #[derive(States, Debug, Clone, PartialEq, Eq, Hash, Default)]
 #[states(scoped_entities)]
@@ -14,7 +16,7 @@ pub enum AppState {
 }
 fn main() {
     App::new()
-        .add_plugins(DefaultPlugins)
+        .add_plugins((DefaultPlugins, menu::plugin, star::plugin, enemy::plugin))
         .init_state::<AppState>()
         .run()
     ;
